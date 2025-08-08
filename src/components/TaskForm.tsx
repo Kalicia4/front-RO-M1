@@ -94,11 +94,38 @@ export default function TaskForm() {
 
   const handleDeleteTask = (index: number) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cette tâche ?")) {
-      const updatedTasks = tasks.filter((_, i) => i !== index);
-      setTasks(updatedTasks);
+      const taskToDelete = tasks[index];
+      const { preced, succ, nom } = taskToDelete;
+
+      // Mise à jour des liens dans les autres tâches
+      const updatedTasks = tasks.map((task, i) => {
+        if (i === index) return task; // on ne modifie pas encore la tâche à supprimer
+
+        let newPreced = [...task.preced];
+        let newSucc = [...task.succ];
+
+        // Si ce task avait la tâche à supprimer comme prédécesseur → on remplace par ses prédécesseurs
+        if (newPreced.includes(nom)) {
+          newPreced = newPreced.filter(p => p !== nom);
+          newPreced.push(...preced.filter(p => !newPreced.includes(p)));
+        }
+
+        // Si ce task avait la tâche à supprimer comme successeur → on remplace par ses successeurs
+        if (newSucc.includes(nom)) {
+          newSucc = newSucc.filter(s => s !== nom);
+          newSucc.push(...succ.filter(s => !newSucc.includes(s)));
+        }
+
+        return { ...task, preced: newPreced, succ: newSucc };
+      });
+
+      // Suppression définitive de la tâche
+      const finalTasks = updatedTasks.filter((_, i) => i !== index);
+
+      setTasks(finalTasks);
       setDataSent(false);
       setResult(null);
-      // Réinitialiser le formulaire si on supprime la tâche en cours de modification
+
       if (editingTask === index) {
         setNom("");
         setDuree("");
@@ -106,7 +133,6 @@ export default function TaskForm() {
         setSucc("");
         setEditingTask(null);
       } else if (editingTask !== null && editingTask > index) {
-        // Ajuster l'index si on supprime une tâche avant celle en cours de modification
         setEditingTask(editingTask - 1);
       }
     }
@@ -395,7 +421,8 @@ export default function TaskForm() {
   };
 
   return (
-    <div className="p-4">
+  <div className="p-4">
+        <div className="max-w-3xl mx-auto">
       <div className="max-w-2xl mx-auto p-6">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           {/* En-tête avec gradient */}
@@ -626,8 +653,8 @@ export default function TaskForm() {
       </div>
 
       {error && <p className="mt-4 text-red-600 font-bold">{error}</p>}
-
-      {result && (
+    </div>
+    {result && (
         <div className="mt-8">
           <h3 className="font-semibold mb-4 text-lg">Graphe CPM :</h3>
           <div className="mb-4 p-4 bg-gray-100 rounded">
@@ -664,6 +691,7 @@ export default function TaskForm() {
           )}
         </div>
       )}
-    </div>
+    
+  </div>
   );
 }
