@@ -1,15 +1,9 @@
-import TaskGraph from './components/TaskGraph';
+import TaskForm from "./components/TaskForm";
 
-
-function App() {
-  
-
+export default function App() {
   return (
-    <div>
-      <h1>CPM Graph</h1>
-      <TaskGraph />
+    <div className="max-w-3xl mx-auto p-6">
+      <TaskForm />
     </div>
-  )
+  );
 }
-
-export default App
