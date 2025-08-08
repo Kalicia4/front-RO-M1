@@ -160,6 +160,16 @@ export default function TaskForm() {
         // Créer une copie des liens pour les compléter
         const completedLinks = { ...originalLinks };
 
+        // Ajouter les tâches sans prédécesseur comme successeurs du nœud "START"
+        tasks.forEach(task => {
+          if ((!completedLinks[task.nom] || completedLinks[task.nom].length === 0) && task.nom !== "START" && task.nom !== "END") {
+            if (!completedLinks[task.nom]) {
+              completedLinks[task.nom] = [];
+            }
+            completedLinks[task.nom].push("START");
+          }
+        });
+
         // Ajouter les tâches sans successeur comme prédécesseurs du nœud "END"
         tasks.forEach(task => {
         const hasSucc = tasks.some(t => t.preced.includes(task.nom));
@@ -171,7 +181,7 @@ export default function TaskForm() {
         }
         });
 
-        setLinks(completedLinks);
+      setLinks(completedLinks);
       setDataSent(true);
       alert("Données envoyées avec succès !");
     } catch (err: any) {
@@ -341,8 +351,8 @@ export default function TaskForm() {
       let dateTard = 0;
 
       if (eventId === "START") {
-        dateTot = result?.dateTot?.["debut"] || result?.dateTot?.["START"] || 0;
-        dateTard = result?.dateTard?.["debut"] || result?.dateTard?.["START"] || 0;
+        dateTot = result?.dateTot?.["Début"] || result?.dateTot?.["START"] || 0;
+        dateTard = result?.dateTard?.["Début"] || result?.dateTard?.["START"] || 0;
       } else if (eventId === "END") {
         dateTot = result?.dateTot?.["fin"] || result?.dateTot?.["END"] || 0;
         dateTard = result?.dateTard?.["fin"] || result?.dateTard?.["END"] || 0;
@@ -351,24 +361,42 @@ export default function TaskForm() {
         dateTot = result?.dateTot?.[eventId] || 0;
         dateTard = result?.dateTard?.[eventId] || 0;
         
-        // Si pas trouvé directement, chercher dans les clés qui contiennent le nom
-        if (dateTot === 0 && result?.dateTot) {
-          const matchingKey = Object.keys(result.dateTot).find(key => 
-            key.includes(eventId) || eventId.includes(key)
-          );
-          if (matchingKey) {
-            dateTot = result.dateTot[matchingKey];
-          }
+      function findMatchingKey(keys: string[], eventId: string): string | undefined {
+        // Priorité à la correspondance exacte
+        if (keys.includes(eventId)) return eventId;
+
+        // Si eventId est une seule lettre (ex: "D")
+        if (eventId.length === 1) {
+          // Chercher une clé où eventId est une lettre distincte (ex: "CD" contient "D")
+          return keys.find(key => {
+            // Exclure "Début" et "fin" pour éviter les confusions
+            if (key.toLowerCase() === "début" || key.toLowerCase() === "fin") return false;
+
+            // Vérifier que eventId est bien une lettre présente dans la clé, séparée
+            return key.split("").includes(eventId);
+          });
         }
-        
-        if (dateTard === 0 && result?.dateTard) {
-          const matchingKey = Object.keys(result.dateTard).find(key => 
-            key.includes(eventId) || eventId.includes(key)
-          );
-          if (matchingKey) {
-            dateTard = result.dateTard[matchingKey];
-          }
+
+        // Sinon chercher si eventId est une sous-partie de la clé (ex: eventId = "CD" et key = "C")
+        return keys.find(key => eventId.includes(key));
+      }
+
+      // Ensuite dans ta récupération des dates :
+
+      if ((dateTot === 0 || dateTot === undefined) && result?.dateTot) {
+        const matchingKey = findMatchingKey(Object.keys(result.dateTot), eventId);
+        if (matchingKey) {
+          dateTot = result.dateTot[matchingKey];
         }
+      }
+
+      if ((dateTard === 0 || dateTard === undefined) && result?.dateTard) {
+        const matchingKey = findMatchingKey(Object.keys(result.dateTard), eventId);
+        if (matchingKey) {
+          dateTard = result.dateTard[matchingKey];
+        }
+      }
+
       }
 
       return {
